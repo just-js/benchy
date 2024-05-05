@@ -717,6 +717,50 @@ function displayFilters () {
 }
 
 function getBenchmark (name) {
+  if (/^file/.test(location.protocol)) {
+    const inputId = 'file_input';
+    const labelId = 'file_input_label';
+    const input = document.getElementById(inputId) ||
+      document.createElement('input');
+    input.id = inputId;
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.style = 'display:none !important;';
+    const label = document.getElementById(labelId) ||
+      document.createElement('label');
+    label.id = labelId;
+    label.setAttribute('for', input.id);
+    label.textContent = `Click to select "${name}.json" file`;
+    label.style =
+      'position:fixed;z-index:999;top:50%;left:50%;width:20em;max-width:100%;padding:16px 8px;'
+      + 'font-size:32px;transform:translate(-50%,-50%);border:solid #ccc 2px;border-radius:8px;'
+      + 'text-align:center;cursor:pointer;color:#0aa;background:rgba(255,255,255,.5);user-select:none;';
+    document.body.appendChild(input);
+    document.body.appendChild(label);
+
+    const cleanup = () => {
+      document.body.removeChild(input);
+      document.body.removeChild(label);
+    };
+
+    return new Promise(function (resolve) {
+      input.onchange = () => {
+        const fileReader = new FileReader();
+        fileReader.onload = function () {
+          const results = JSON.parse(fileReader.result);
+          results.config.config.id = current;
+          results.config.config.name = name;
+          cleanup();
+          resolve(results);
+        };
+        fileReader.readAsText(input.files[0]);
+      };
+    }).catch((error) => {
+      cleanup();
+      throw error;
+    });
+  }
+  
 	return fetch(`${current}/${name}.json`)
 		.then(response => response.json())
     .then(results => {
